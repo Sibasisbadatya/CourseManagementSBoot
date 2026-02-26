@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SmsService {
-    private static final String ACCOUNT_SID = "sibasis";
-    private static final String AUTH_TOKEN = "sibasis";
-    private static final String FROM_NUMBER = "+sibasis";
+        private static final String ACCOUNT_SID = "AC74c8f5e21021307783f7ae662543637b";
+    private static final String AUTH_TOKEN = "0de64bf9e8f3ee1c27eb737d88eb5d1e";
+    private static final String FROM_NUMBER = "+12706067390";
     @PostConstruct
     private void init(){
         Twilio.init(ACCOUNT_SID,AUTH_TOKEN);
