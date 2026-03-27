@@ -1,0 +1,7 @@
+one publisher will publish an event then it will be consumed by many consumer it linked to.
+
+
+when server starts spring makes the bean of the listeners by finding the annotation @EventListener and give them to Application Event Multicaster
+and Application Event Multicaster store them in its cache. so when event fires it goes to multicaster, and it finds the listener from the eventType it got.
+
+we have to make a event which basically a class.

@@ -4,7 +4,7 @@ interface MathOperation {
     // In interface there are certain rules like variables are automatically or by default public static final
     // and mehtods are public abstract
 
-    //    and the interface havinf one absttract method is called functional interface
+    //    and the interface having one abstract method is called functional interface
     int operate(int a, int b);
 }
 

@@ -1,0 +1,16 @@
+Iterable:interface which has a single work that which class implement this interface then we can use forEach loop for that
+
+collection:root interface for other collection types
+
+List:Ordered collection that contain duplicate elements (ArrayList,Linked list)
+In an ordered collection, the elements are stored in a specific sequence, and their position (index) matters.
+You can access elements using their index.
+
+Set: A collection that doesn't contain duplicate elements like (Hashset,Tree set)
+
+Queue:designed for holding elements prior to processing (Priority Queue,LinkedList)
+
+Deque:that allows insertion and removal of elements from both ends (ArrayDeque)
+
+Map: Interface that represents key value pairs.(HashMap,TreeMap)
+

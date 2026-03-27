@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Data
 @AllArgsConstructor
@@ -20,10 +23,19 @@ public class Course {
     private String title;
     private String description;
     private Integer maxCapacity;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonBackReference
     private User user;
+
+    @OneToMany(
+            mappedBy = "course",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+   private List<Assignment> assignmentList = new ArrayList<>();
 
 
     // getters & setters

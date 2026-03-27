@@ -1,0 +1,12 @@
+ The more Core CPU has the more strong the CPU
+
+ Program is the set of instructions ex. MS Word
+ process is the instance of a program
+
+ a thread is the smallest unit of execution within a process, which share the same resource but can run independently.
+
+ multitasking allows an OS to run multiple processes simultaneously.
+ in multicore true parallel execution occurs but in single core OS rapidly switch the tasks.
+
+multithreading refers to the ability to execute multiple threads within a single process concurrently.
+multithreading enhances the multitasking.

@@ -29,6 +29,9 @@ public class IntermediateOperations {
         Stream.iterate(1, x -> x + 1).limit(100);
 //        SKIP
         Stream.iterate(0,x->x+1).skip(10).limit(20).forEach(System.out::println);
+//        PEEK  takes a Consumer
+        Stream.iterate(0,x->x+1).skip(10).limit(100).peek(System.out::println).count();
+//        Here peek() is intermediate while foreach is terminated operation
     }
 
 }

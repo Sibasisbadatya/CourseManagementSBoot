@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @Data
 public class CourseDTO {
     private String title;
-    private Long userId;
     private String description;
     private Integer maxCapacity;
+    private Long userId;
 
     public Integer getMaxCapacity() {
         return maxCapacity;

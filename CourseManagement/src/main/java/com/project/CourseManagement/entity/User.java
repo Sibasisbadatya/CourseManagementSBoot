@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Entity
-@ToString(exclude = {"courses", "assignments"})
+@ToString(exclude = {"courses", "createdAssignments","submittedAssignments"})
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(
@@ -36,12 +36,18 @@ public class User implements UserDetails {
     private Long mobileNo;
 
     @OneToMany(
-            mappedBy = "user",
+            mappedBy = "createdBy",
             cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
+            orphanRemoval = true
     )
-    private List<Assignment> assignments = new ArrayList<>();
+    private List<Assignment> createdAssignments = new ArrayList<>();
+
+    @OneToMany(
+            mappedBy = "submittedBy",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<Assignment> submittedAssignments = new ArrayList<>();
 
     public List<Role> getRoles() {
         return roles;

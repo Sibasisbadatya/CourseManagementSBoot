@@ -1,0 +1,24 @@
+there are 2 types of locks
+one is instrinsic and another is extrinsic
+for intrinsic thread by default has this, we normally use synchronised to achieve this
+for extrinsic we have to manually configure
+
+
+Extrinsic lock
+
+🧠 Real-Life Analogy
+🔐 lock()
+
+You stand in line at ATM.
+Even if 20 people are ahead, you wait.
+
+⚡ tryLock()
+
+You check ATM:
+If free → use it.
+If busy → leave.
+
+⏳ tryLock(timeout)
+
+You wait 2 minutes.
+If still busy → leave.

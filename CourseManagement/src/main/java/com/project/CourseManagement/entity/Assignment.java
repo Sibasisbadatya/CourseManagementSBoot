@@ -18,14 +18,56 @@ public class Assignment {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-    private Long courseId;
+    @JoinColumn(name = "created_by", nullable = false)
+    private User createdBy;
+
+    @ManyToOne
+    @JoinColumn(name = "submitted_by")
+    private User submittedBy;
+
+    @ManyToOne
+    @JoinColumn(name = "courseId")
+    private Course course;
+
     private String fileName;
     private String filePath;
     private String audioPath;
     private String audioFileName;
+    private String videoPath;
+    private String videoFileName;
     private Boolean isApproved;
+
+    public User getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(User createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public User getSubmittedBy() {
+        return submittedBy;
+    }
+
+    public void setSubmittedBy(User submittedBy) {
+        this.submittedBy = submittedBy;
+    }
+
+    public String getVideoPath() {
+        return videoPath;
+    }
+
+    public void setVideoPath(String videoPath) {
+        this.videoPath = videoPath;
+    }
+
+    public String getVideoFileName() {
+        return videoFileName;
+    }
+
+    public void setVideoFileName(String videoFileName) {
+        this.videoFileName = videoFileName;
+    }
 
     public Boolean getApproved() {
         return isApproved;
@@ -37,10 +79,6 @@ public class Assignment {
 
     private LocalDateTime uploadedAt;
     private LocalDateTime createdAt;
-
-    public User getUser() {
-        return user;
-    }
 
     public String getAudioFileName() {
         return audioFileName;
@@ -66,20 +104,12 @@ public class Assignment {
         this.id = id;
     }
 
-    public User getUserId() {
-        return user;
+    public Course getCourse() {
+        return course;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Long getCourseId() {
-        return courseId;
-    }
-
-    public void setCourseId(Long courseId) {
-        this.courseId = courseId;
+    public void setCourseId(Course course) {
+        this.course = course;
     }
 
     public String getFileName() {

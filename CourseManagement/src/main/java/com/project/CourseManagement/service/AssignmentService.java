@@ -2,12 +2,17 @@ package com.project.CourseManagement.service;
 
 import com.project.CourseManagement.dto.AssignmentDTO;
 import com.project.CourseManagement.dto.CustomResponse;
+import com.project.CourseManagement.dto.FileItemDTO;
 import com.project.CourseManagement.entity.Assignment;
+import com.project.CourseManagement.entity.Course;
 import com.project.CourseManagement.entity.User;
+import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.exception.*;
 import com.project.CourseManagement.repository.AssignmentRepository;
+import com.project.CourseManagement.repository.CourseRepository;
 import com.project.CourseManagement.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,29 +34,37 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-
+@Slf4j
 @Service
 public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
     private static final String BASE_PATH = "uploads/assignments";
     private final SimpMessagingTemplate messagingTemplate;
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
 
-    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate) {
+    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate) {
         this.assignmentRepository = assignmentRepository;
         this.userRepository = userRepository;
+        this.courseRepository = courseRepository;
         this.modelMapper = modelMapper;
         this.notificationService = notificationService;
         this.messagingTemplate = messagingTemplate;
     }
 
-    public AssignmentDTO uploadAssignment(Long courseId, MultipartFile file, MultipartFile audio, String email) throws FileStorageException {
+
+    @Transactional
+    public AssignmentDTO submitAssignment(Long assignmentId,MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
         if (file.isEmpty()) {
-            throw new FileNotFound("Assignment Documnent is Empty");
+            throw new FileNotFound("Assignment Document is Empty");
         }
 
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotPresent("User Not Found to Upload Assignment"));
@@ -62,21 +75,63 @@ public class AssignmentService {
 
             String filePath = userFolder + "/" + file.getOriginalFilename();
             Files.copy(file.getInputStream(), Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+//            StandardCopyOption is an enum in Java (NIO package) used while copying or moving files.
+//                    | Option             | Meaning                                |
+//                    | ------------------ | -------------------------------------- |
+//                    | `REPLACE_EXISTING` | Replace file if it already exists      |
+//                    | `COPY_ATTRIBUTES`  | Copy file metadata (like timestamps)   |
+//                    | `ATOMIC_MOVE`      | Move file as a single atomic operation |
 
-            String audioPath = null;
+
+            Path audioPath = null;
+            Path videoPath = null;
+//                    1. Path (The "Address")
+//                    Path is an interface. Think of it as the GPS coordinates for a file. It doesn't mean the file exists; it’s just the representation of the location.
+//
+//                    Key Detail: It replaced java.io.File.
+//                    What it holds: The directory structure, the filename, and the file extension.
+
+//                    2. Paths (The "GPS Device")
+//                    Paths is a utility class used to create Path objects. You use it to turn a String into a usable Java object.
+                    // Creating a path from a String
+//                    Path myFile = Paths.get("C:/uploads/assignments/math.pdf");
+
+                    // You can also pass parts separately (it handles the slashes for you!)
+//                    Path sameFile = Paths.get("C:", "uploads", "assignments", "math.pdf");
+
+
+//                    3. Files (The "Worker")
+//                    If Path is the address, Files is the person who actually goes to that address to do work.
+//                    It is a utility class full of static methods to manipulate the files.
+
+//                    Method,What it does,Example
+//                    Files.exists(path),Checks if the file is there.,boolean isThere = Files.exists(myPath);
+//                    "Files.copy(src, dest)",Copies a file.,"Files.copy(oldPath, newPath);"
+//                    "Files.move(src, dest)",Renames or moves a file.,"Files.move(oldPath, newPath);"
+//                    Files.delete(path),Deletes a file.,Files.delete(myPath);
+//                    Files.size(path),Gets the size in bytes.,long bytes = Files.size(myPath);
+//                    Files.probeContentType(path),Guesses the file type (MIME).,String type = Files.probeContentType(myPath);
+
             if (audio != null && !audio.isEmpty()) {
-                audioPath = userFolder + "/" + audio.getOriginalFilename();
-                Files.copy(audio.getInputStream(), Paths.get(audioPath), StandardCopyOption.REPLACE_EXISTING);
+                audioPath = Paths.get(userFolder, audio.getOriginalFilename());
+                Files.copy(audio.getInputStream(), audioPath, StandardCopyOption.REPLACE_EXISTING);
             }
-
-            Assignment assignment = new Assignment();
-            assignment.setCourseId(courseId);
-            assignment.setUser(user);
+            if (video != null && !video.isEmpty()) {
+                videoPath = Paths.get(userFolder, video.getOriginalFilename());
+                Files.copy(video.getInputStream(), videoPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            log.info("AssignmentId",assignmentId);
+            Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(()-> new DataNotFound("Assignment Not Found to Submit"));
+            assignment.setSubmittedBy(user);
             assignment.setFilePath(filePath);
             assignment.setFileName(file.getOriginalFilename());
             if (audioPath != null) {
-                assignment.setAudioPath(audioPath);
+                assignment.setAudioPath(audioPath.toString());
                 assignment.setAudioFileName(audio.getOriginalFilename());
+            }
+            if (videoPath != null) {
+                assignment.setVideoPath(videoPath.toString());
+                assignment.setVideoFileName(video.getOriginalFilename());
             }
             assignment.setUploadedAt(LocalDateTime.now());
             assignmentRepository.save(assignment);
@@ -84,25 +139,72 @@ public class AssignmentService {
         } catch (IOException e) {
             throw new FileStorageException("Couldn't store file on disk");
         } catch (Exception e) {
-            throw new InternalServerError("Error Occured in Uploading");
+            log.info(e.getMessage());
+            throw new InternalServerError("Error Occurred in Uploading");
         }
     }
 
-    public ResponseEntity<CustomResponse> getAssignment(Long assignmentId, String type) throws IOException {
-        Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
-        boolean isFile = type == "audio" ? true : false;
-        Path path = Paths.get(isFile ? assignment.getFilePath() : assignment.getAudioPath());
-        String fileName = isFile ? assignment.getFileName() : assignment.getAudioFileName();
-        Resource resource = new UrlResource(path.toUri());
-        ContentDisposition contentDisposition = ContentDisposition.attachment()
-                .filename(fileName, StandardCharsets.UTF_8)
-                .build();
 
-        CustomResponse customResponse = new CustomResponse("Downloadable Data fetched Succesfully", assignment, HttpStatus.OK);
-        return ResponseEntity.status(HttpStatus.OK)
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
-                .body(customResponse);
+    public Assignment createAssignment(AssignmentDTO assignmentDTO, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Assignment savedAssignment = null;
+        Long courseId = assignmentDTO.getCourseId();
+        Course course = null;
+        try {
+            course = courseRepository.findById(courseId).orElseThrow(()-> new DataNotFound("Course Not Found to create Assignment"));
+        }catch (Exception e){
+            throw new DataNotFound("Course Not Found to create Assignment");
+        }
+        Assignment assignment = new Assignment();
+        try {
+
+            assignment.setCourse(course);
+            assignment.setCreatedBy(user);
+            savedAssignment = assignmentRepository.save(assignment);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            throw new InternalServerError("Error during creating assignment");
+        }
+        return assignment;
     }
+
+
+//    public ResponseEntity<CustomResponse> getAssignment(Long assignmentId, String type) throws IOException {
+//        Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
+//        boolean isFile = type == "audio" ? true : false;
+//        Path path = Paths.get(isFile ? assignment.getFilePath() : assignment.getAudioPath());
+//        String fileName = isFile ? assignment.getFileName() : assignment.getAudioFileName();
+//        Resource resource = new UrlResource(path.toUri());
+//        ContentDisposition contentDisposition = ContentDisposition.attachment()
+//                .filename(fileName, StandardCharsets.UTF_8)
+//                .build();
+//
+//        CustomResponse customResponse = new CustomResponse("Downloadable Data fetched Succesfully", assignment, HttpStatus.OK);
+//        return ResponseEntity.status(HttpStatus.OK)
+//                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+//                .body(customResponse);
+//    }
+
+    public List<FileItemDTO> getAssignmentByCourseId(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
+        List<FileItemDTO> response = new ArrayList<>();
+        Map<FileType, String> fileData = Map.of(
+                FileType.FILE, assignment.getFilePath(),
+                FileType.AUDIO, assignment.getAudioPath(),
+                FileType.VIDEO, assignment.getVideoPath()
+        );
+        fileData.forEach((fileType, value) -> {
+            if (value != null) {
+                response.add(
+                        new FileItemDTO(
+                                fileType, value
+                        )
+                );
+            }
+        });
+        return response;
+    }
+
 
     @Transactional
     public AssignmentDTO approveAssignment(String assignmentId, Authentication authentication) {
@@ -110,9 +212,10 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(id).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found to Approve"));
         assignment.setApproved(true);
         try {
+            log.info("ASSIGNMENT {}", assignment);
             assignmentRepository.save(assignment);
             try {
-                notificationService.saveAndSendNotificationToPersonal("Assignment Approved", assignment.getUser(), "/queue/assignment-updates", assignment);
+                notificationService.saveAndSendNotificationToPersonal("Assignment Approved", assignment.getCreatedBy(), "/queue/assignment-updates", assignment);
             } catch (RuntimeException e) {
                 logger.info("Error in Send Msg", e.getMessage());
                 throw new RuntimeException(e);
@@ -126,4 +229,16 @@ public class AssignmentService {
 
     }
 
+    public Resource loadFileAsResource(Long assignmentId, FileType type) {
+        Assignment assignment = null;
+        assignment = assignmentRepository.findById(assignmentId).orElseThrow(()-> new DataNotFound("Assignment Data Not Found for Files"));
+        String filePath = switch (type) {
+            case FileType.VIDEO -> assignment.getVideoPath();
+            case FileType.AUDIO -> assignment.getAudioPath();
+            default -> assignment.getFilePath();
+        };
+        if (filePath == null || filePath.isEmpty()) {
+            throw new DataNotFound("No file path found for type: " + type);
+        }
+    }
 }

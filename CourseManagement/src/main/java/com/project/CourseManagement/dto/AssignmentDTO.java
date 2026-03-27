@@ -9,18 +9,62 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AssignmentDTO {
     private Long id;
-    private Long userId;
     private Long courseId;
     private String fileName;
     private String filePath;
+    private String audioPath;
+    private String audioFileName;
+    private String videoPath;
+    private String videoFileName;
     private Boolean isApproved;
 
-    public AssignmentDTO(Long id, Long userId, String fileName, Long courseId, String filePath) {
-        this.id = id;
-        this.userId = userId;
-        this.fileName = fileName;
-        this.courseId = courseId;
-        this.filePath = filePath;
+
+//    public AssignmentDTO(Long id, Long userId, String fileName, Long courseId, String filePath) {
+//        this.id = id;
+//        this.userId = userId;
+//        this.fileName = fileName;
+//        this.courseId = courseId;
+//        this.filePath = filePath;
+//    }
+
+    public String getAudioFileName() {
+        return audioFileName;
+    }
+
+    public void setAudioFileName(String audioFileName) {
+        this.audioFileName = audioFileName;
+    }
+
+    public String getVideoPath() {
+        return videoPath;
+    }
+
+    public void setVideoPath(String videoPath) {
+        this.videoPath = videoPath;
+    }
+
+    public String getVideoFileName() {
+        return videoFileName;
+    }
+
+    public void setVideoFileName(String videoFileName) {
+        this.videoFileName = videoFileName;
+    }
+
+    public Boolean getApproved() {
+        return isApproved;
+    }
+
+    public void setApproved(Boolean approved) {
+        isApproved = approved;
+    }
+
+    public String getAudioPath() {
+        return audioPath;
+    }
+
+    public void setAudioPath(String audioPath) {
+        this.audioPath = audioPath;
     }
 
     public Long getId() {
@@ -55,11 +99,4 @@ public class AssignmentDTO {
         this.courseId = courseId;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
 }

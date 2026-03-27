@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 //@RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class CourseService {
     private final UserRepository userRepo;
     private final ModelMapper mapper;
     private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
+
     public CourseService(CourseRepository courseRepo, UserRepository userRepo, ModelMapper mapper) {
         this.courseRepo = courseRepo;
         this.userRepo = userRepo;
@@ -37,7 +39,7 @@ public class CourseService {
         }
         User user = (User) authentication.getPrincipal();
         int updatedCount = courseRepo.reduceCapacity(courseId);
-        if(updatedCount<=0){
+        if (updatedCount <= 0) {
             throw new OutOfCapacity("All Slots  has been booked");
         }
         Course course = courseRepo.findById(courseId).orElseThrow(() -> new DataNotFound("can't found the course to book"));
@@ -47,11 +49,17 @@ public class CourseService {
     }
 
     public Course addCourse(CourseDTO dto) {
-        Course course = mapper.map(dto, Course.class);
-        logger.info("COURSE {}",course);
+        Course course = new Course();
+        course.setTitle(dto.getTitle());
+        course.setDescription(dto.getDescription());
+        course.setMaxCapacity(dto.getMaxCapacity());
+        Optional<User> user = userRepo.findById(dto.getUserId());
+        user.ifPresent(course::setUser);
+        logger.info("COURSE {}", course);
         try {
             return courseRepo.save(course);
         } catch (RuntimeException e) {
+            logger.info("Error {}", e.getMessage());
             throw new InternalServerError("Couldn't able to add course");
         }
 

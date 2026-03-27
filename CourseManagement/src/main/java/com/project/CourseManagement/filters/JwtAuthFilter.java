@@ -18,6 +18,7 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
+    //it extends OncePerRequestFilter because we dont need to implements filter for repeated redirection to different route.
     private final JWTUtils jwtUtils;
     private final CustomUserDetailService userDetailService;
 
