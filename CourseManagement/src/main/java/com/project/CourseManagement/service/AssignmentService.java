@@ -5,6 +5,7 @@ import com.project.CourseManagement.dto.CustomResponse;
 import com.project.CourseManagement.dto.FileItemDTO;
 import com.project.CourseManagement.entity.Assignment;
 import com.project.CourseManagement.entity.Course;
+import com.project.CourseManagement.entity.Mentor;
 import com.project.CourseManagement.entity.User;
 import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.exception.*;
@@ -34,10 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -78,9 +76,9 @@ public class AssignmentService {
 //            StandardCopyOption is an enum in Java (NIO package) used while copying or moving files.
 //                    | Option             | Meaning                                |
 //                    | ------------------ | -------------------------------------- |
-//                    | `REPLACE_EXISTING` | Replace file if it already exists      |
-//                    | `COPY_ATTRIBUTES`  | Copy file metadata (like timestamps)   |
-//                    | `ATOMIC_MOVE`      | Move file as a single atomic operation |
+//                    | `REPLACE_EXISTING` | Replace file if it already exists without this java will throw FileAlreadyExistsException      |
+//                    | `COPY_ATTRIBUTES`  | Copy file metadata (like timestamps)  Not only file content is copied, but also its metadata. like creation time,lastmodified,last accessed ,permissions |
+//                    | `ATOMIC_MOVE`      | Move file as a single atomic operation No partial move. |
 
 
             Path audioPath = null;
@@ -132,7 +130,7 @@ public class AssignmentService {
             if (videoPath != null) {
                 assignment.setVideoPath(videoPath.toString());
                 assignment.setVideoFileName(video.getOriginalFilename());
-            }
+             }
             assignment.setUploadedAt(LocalDateTime.now());
             assignmentRepository.save(assignment);
             return modelMapper.map(assignment, AssignmentDTO.class);
@@ -145,10 +143,11 @@ public class AssignmentService {
     }
 
 
-    public Assignment createAssignment(AssignmentDTO assignmentDTO, Authentication authentication) {
+    public AssignmentDTO createAssignment(AssignmentDTO assignmentDTO, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         Assignment savedAssignment = null;
         Long courseId = assignmentDTO.getCourseId();
+        String assignmentDescription = assignmentDTO.getAssignmentDescription();
         Course course = null;
         try {
             course = courseRepository.findById(courseId).orElseThrow(()-> new DataNotFound("Course Not Found to create Assignment"));
@@ -156,16 +155,20 @@ public class AssignmentService {
             throw new DataNotFound("Course Not Found to create Assignment");
         }
         Assignment assignment = new Assignment();
+        Mentor mentor = user.getMentor();
+        if (mentor == null) {
+            throw new UserNotPresent("Don't seem to be a mentor to create assignment");
+        }
         try {
-
             assignment.setCourse(course);
-            assignment.setCreatedBy(user);
+            assignment.setCreatedBy(mentor);
+            assignment.setAssignmentDescription(assignmentDescription);
             savedAssignment = assignmentRepository.save(assignment);
+            return modelMapper.map(savedAssignment,AssignmentDTO.class);
         } catch (Exception e) {
             log.info(e.getMessage());
             throw new InternalServerError("Error during creating assignment");
         }
-        return assignment;
     }
 
 
@@ -185,14 +188,23 @@ public class AssignmentService {
 //                .body(customResponse);
 //    }
 
-    public List<FileItemDTO> getAssignmentByCourseId(Long assignmentId) {
-        Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
+    public Assignment getAssignmentById(Long assignmentId){
+        Assignment assignment = null;
+        try {
+             assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
+        }catch (Exception e){
+            log.info("Exception in getAssignmentById"+e.getMessage());
+        }
+        return assignment;
+    }
+
+    public List<FileItemDTO> getAssignmentByAssignmentId(Long assignmentId) {
+        Assignment assignment = getAssignmentById(assignmentId);
         List<FileItemDTO> response = new ArrayList<>();
-        Map<FileType, String> fileData = Map.of(
-                FileType.FILE, assignment.getFilePath(),
-                FileType.AUDIO, assignment.getAudioPath(),
-                FileType.VIDEO, assignment.getVideoPath()
-        );
+        Map<FileType, String> fileData = new HashMap<>();
+        fileData.put(FileType.FILE, assignment.getFilePath());
+        fileData.put(FileType.AUDIO, assignment.getAudioPath());
+        fileData.put(FileType.VIDEO, assignment.getVideoPath());
         fileData.forEach((fileType, value) -> {
             if (value != null) {
                 response.add(
@@ -209,13 +221,13 @@ public class AssignmentService {
     @Transactional
     public AssignmentDTO approveAssignment(String assignmentId, Authentication authentication) {
         Long id = Long.parseLong(assignmentId);
-        Assignment assignment = assignmentRepository.findById(id).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found to Approve"));
-        assignment.setApproved(true);
+        Assignment assignment = getAssignmentById(id);
+        assignment.setIsApproved(true);
         try {
             log.info("ASSIGNMENT {}", assignment);
             assignmentRepository.save(assignment);
             try {
-                notificationService.saveAndSendNotificationToPersonal("Assignment Approved", assignment.getCreatedBy(), "/queue/assignment-updates", assignment);
+                notificationService.saveAndSendNotificationToPersonal("Assignment Approved", assignment.getCreatedBy().getUser(), "/queue/assignment-updates", assignment);
             } catch (RuntimeException e) {
                 logger.info("Error in Send Msg", e.getMessage());
                 throw new RuntimeException(e);
@@ -240,5 +252,6 @@ public class AssignmentService {
         if (filePath == null || filePath.isEmpty()) {
             throw new DataNotFound("No file path found for type: " + type);
         }
+        return null;
     }
 }

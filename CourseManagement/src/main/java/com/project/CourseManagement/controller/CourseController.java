@@ -21,22 +21,38 @@ public class CourseController {
         this.courseService = courseService;
     }
 
+
+    @GetMapping("/getAllCourse")
+    public ResponseEntity<CustomResponse> getAllCourse(){
+        List<Course> courses = courseService.getAllCourse();
+        CustomResponse customResponse = new CustomResponse("All courses fetched Succesfully",courses, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+    }
+
+    @GetMapping("/{courseId}")
+    public ResponseEntity<CustomResponse> getCourseByCourseId(@PathVariable Long courseId,Authentication authentication){
+        CourseDTO course = courseService.getCourseByCourseId(courseId,authentication);
+        CustomResponse customResponse = new CustomResponse("Course details fetched successfully",course, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+    }
+
     @PostMapping("/bookcourse/{courseId}")
     public Course bookCourse(@PathVariable String courseId, Authentication authentication) {
         return courseService.bookCourse(Long.parseLong(courseId),authentication);
     }
 
 
-    @GetMapping("/user/{userId}")
-    public List<Course> getCoursesByUser(@PathVariable Long userId) {
-        return courseService.getCoursesByUser(userId);
+    @GetMapping("/getCourses")
+    public List<Course> getCoursesByUser(Authentication authentication) {
+        return courseService.getCoursesByUser(authentication);
     }
 
     @PostMapping("/addCourse")
-    public ResponseEntity<CustomResponse> addCourse(@RequestBody CourseDTO dto){
-        Course course = courseService.addCourse(dto);
+    public ResponseEntity<CustomResponse> addCourse(@RequestBody CourseDTO dto,Authentication authentication){
+        Course course = courseService.addCourse(dto,authentication);
         CustomResponse customResponse = new CustomResponse("Course succesfully added",course, HttpStatus.CREATED);
         return ResponseEntity.status(HttpStatus.CREATED).body(customResponse);
     }
+
 
 }

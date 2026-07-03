@@ -7,6 +7,7 @@ import com.project.CourseManagement.service.SmsService;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,6 +21,7 @@ public class NotificationListener {
     }
 
     @EventListener
+    @Async
     public void handleSendInAppNotification(NotificationEvent event) {
         try {
             User user = event.getUser();

@@ -1,7 +1,8 @@
 package com.project.CourseManagement.practice.multithreading.communication;
 
 //Thread communication means threads coordinate with each other by sending signals so that they work in the correct order.
-//Without proper communication mechanism,threads might end up in inefficient busy-waiting states,leading to wastage of CPU resources and potential deadlocks.
+//Without proper communication mechanism,threads might end up in inefficient busy-waiting states,
+// leading to wastage of CPU resources and potential deadlocks.
 //methods for communication
 // wait
 // notify

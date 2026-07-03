@@ -30,6 +30,7 @@ public class NotificationService {
     }
 
 
+
     @Transactional
     public void saveAndSendNotificationToPersonal(String message, User user, String destination, Object data) {
         SavedNotification savedNotification = new SavedNotification(message, user, false);

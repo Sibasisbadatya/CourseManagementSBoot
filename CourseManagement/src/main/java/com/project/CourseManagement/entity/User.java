@@ -3,8 +3,10 @@ package com.project.CourseManagement.entity;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.Cascade;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,47 +17,27 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Entity
-@ToString(exclude = {"courses", "createdAssignments","submittedAssignments"})
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(exclude = {"courses", "createdAssignments", "submittedAssignments", "roles", "mentor"})
 @Table(
         name = "users",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"email"})
         }
 )
-
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String name;
     private String password;
     private String email;
     private Long mobileNo;
-
-    @OneToMany(
-            mappedBy = "createdBy",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<Assignment> createdAssignments = new ArrayList<>();
-
-    @OneToMany(
-            mappedBy = "submittedBy",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<Assignment> submittedAssignments = new ArrayList<>();
-
-    public List<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(List<Role> roles) {
-        this.roles = roles;
-    }
+    private String profileImage;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -65,70 +47,50 @@ public class User implements UserDetails {
     )
     private List<Role> roles = new ArrayList<>();
 
-    public List<Course> getCourses() {
-        return courses;
+    @OneToOne(mappedBy = "user",cascade = CascadeType.ALL)
+    private Mentor mentor;
+
+
+    @OneToMany(
+            mappedBy = "submittedBy",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<Assignment> submittedAssignments = new ArrayList<>();
+
+
+    @ManyToMany
+    @JoinTable(
+            name = "student_courses",
+            joinColumns = @JoinColumn(name = "student_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> courses;
+
+    // =========================================================================
+    // HELPER METHODS
+    // =========================================================================
+
+    public void addRole(Role role) {
+        this.roles.add(role);
+        role.getUsers().add(this);
     }
 
 
-//    **************************   HERE ALL SCHEMA COLUMNS ENDS ************************************************
 
 
-    public void setCourses(List<Course> courses) {
-        this.courses = courses;
-    }
 
-    public Long getMobileNo() {
-        return mobileNo;
-    }
 
-    public void setMobileNo(Long mobileNo) {
-        this.mobileNo = mobileNo;
-    }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<Course> courses = new ArrayList<>();
+    // =========================================================================
+    // SPRING SECURITY (USERDETAILS) OVERRIDES
+    // =========================================================================
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-//        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName().name()))
                 .collect(Collectors.toList());
-    }
-
-
-    @Override
-    public String getPassword() {
-        return this.password;
     }
 
     @Override
@@ -137,8 +99,13 @@ public class User implements UserDetails {
     }
 
     @Override
+    public String getPassword() {
+        return this.password;
+    }
+
+    @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return true;
     }
 
     @Override
@@ -155,7 +122,4 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
-    // getters & setters
 }
-

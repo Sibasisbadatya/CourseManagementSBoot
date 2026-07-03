@@ -15,7 +15,7 @@ public class RateLimitConfig {
 
     @Bean
     public Bucket bucket(){
-        Bandwidth limit = Bandwidth.classic(5, Refill.greedy(5, Duration.ofMinutes(1)));
+        Bandwidth limit = Bandwidth.classic(100, Refill.greedy(100, Duration.ofMinutes(1)));
         return Bucket4j.builder().addLimit(limit).build();
     }
 }
@@ -41,7 +41,7 @@ public class RateLimitConfig {
 
 //        | Feature           | greedy         | intervally        | intervallyAligned   |
 //        | ----------------- | -------------- | ----------------- | ------------------- |
-//        | Refill style      | Gradual        | Batch             | Batch               |
+//        | Refill style      | Gradual(1 by 1)| Batch             | Batch               |
 //        | Refill timing     | Continuous     | After interval    | At fixed clock time |
 //        | Traffic smoothing | Yes            | No                | No                  |
 //        | Common usage      | API throttling | Simple rate limit | Quota systems       |

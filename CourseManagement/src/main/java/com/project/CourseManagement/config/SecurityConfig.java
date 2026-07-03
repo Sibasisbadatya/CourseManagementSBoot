@@ -46,9 +46,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/users/register","/users/login").permitAll()
 //                                .requestMatchers("/audio-ws/**").permitAll()
-//                                .requestMatchers("/error").permitAll()
+                                .requestMatchers("/error").permitAll()
 //                                .requestMatchers("/audio/**").permitAll()
 //                                .anyRequest().permitAll()
+//                                .requestMatchers("/assignments/stream/**", "/error").permitAll()
                                 .anyRequest().authenticated()
                 );
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -77,7 +78,7 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Apply to all paths
-                        .allowedOrigins("http://localhost:5173") // Your frontend URL
+                        .allowedOriginPatterns("http://localhost:*") // Your frontend URL
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

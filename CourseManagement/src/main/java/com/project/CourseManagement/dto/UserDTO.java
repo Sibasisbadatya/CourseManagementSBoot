@@ -1,69 +1,34 @@
 package com.project.CourseManagement.dto;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.project.CourseManagement.enums.UserRole;
+import lombok.*;
+
+import java.util.List;
+import java.util.Set;
 
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@Getter
+@Setter
 public class UserDTO {
     private String name;
     private String password;
     private String email;
     private Long mobileNo;
     private String token;
+    private Set<UserRole> roles;
+    private String profileImage;
 
-    public Long getMobileNo() {
-        return mobileNo;
-    }
-
-    public void setMobileNo(Long mobileNo) {
-        this.mobileNo = mobileNo;
-    }
-
-    public String getImage() {
-        return image;
-    }
-
-    public void setImage(String image) {
-        this.image = image;
-    }
-
-    private String image;
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
+    public UserDTO(String name, String email,String password, Long mobileNo,String profileImage,Set<UserRole> roles) {
         this.name = name;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
         this.email = email;
+        this.mobileNo = mobileNo;
+        this.roles = roles;
+        this.password = password;
+        this.profileImage=profileImage;
     }
 }
 

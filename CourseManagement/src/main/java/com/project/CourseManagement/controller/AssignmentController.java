@@ -8,9 +8,11 @@ import com.project.CourseManagement.entity.User;
 import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.exception.InternalServerError;
 import com.project.CourseManagement.service.AssignmentService;
-import com.project.CourseManagement.service.UserService;
+import com.project.CourseManagement.service.StreamingService;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +27,18 @@ import java.io.IOException;
 @RequestMapping("/assignments")
 public class AssignmentController {
     private final AssignmentService assignmentService;
+    private final StreamingService streamingService;
 
     private static final Logger logger = LoggerFactory.getLogger(AssignmentController.class);
 
-    public AssignmentController(AssignmentService assignmentService) {
+    public AssignmentController(AssignmentService assignmentService, StreamingService streamingService) {
         this.assignmentService = assignmentService;
+        this.streamingService = streamingService;
     }
 
 
     @PostMapping("/submit-assignment")
+    @Transactional
     public ResponseEntity<CustomResponse> submitAssignment(
             @RequestParam Long assignmentId,
             @RequestParam("file") MultipartFile file,
@@ -53,46 +58,45 @@ public class AssignmentController {
         System.out.println("AUTHENTICATION" + authentication);
         logger.info("AUTHENTICATION INFO" + authentication);
         User user = (User) authentication.getPrincipal();
-        AssignmentDTO assignmentDTO = assignmentService.submitAssignment(assignmentId,file, audio, video, authentication.getName());
+        AssignmentDTO assignmentDTO = assignmentService.submitAssignment(assignmentId, file, audio, video, authentication.getName());
         CustomResponse customResponse = new CustomResponse("Assignment uploaded successfully", assignmentDTO, HttpStatus.OK);
         return ResponseEntity.status(HttpStatus.OK).body(customResponse);
     }
 
-    @GetMapping("/get-assignment/{assignmentId}")
+    @GetMapping("/get-submitted-assignment/{assignmentId}")
     public ResponseEntity<CustomResponse> getAssignment(
             @PathVariable Long assignmentId,
             Authentication authentication
     ) {
         List<FileItemDTO> assignmentFiles = new ArrayList<>();
         try {
-            assignmentFiles = assignmentService.getAssignmentByCourseId(assignmentId);
+            assignmentFiles = assignmentService.getAssignmentByAssignmentId(assignmentId);
         } catch (Exception e) {
             throw new InternalServerError("Error Ocuured while fetching Assignment Files");
         }
-        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully",assignmentFiles,HttpStatus.OK);
+        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", assignmentFiles, HttpStatus.OK);
         return ResponseEntity.status(HttpStatus.OK).body(customResponse);
 
     }
 
-//    @GetMapping("/{assignmentId}/download")
-//    public ResponseEntity<CustomResponse> getUploadedAssignment(
-//            @PathVariable Long assignmentId,
-//            @RequestParam String type,
-//            Authentication authentication
-//    ) {
-//        User user = (User) authentication.getPrincipal();
-//        try {
-//            return assignmentService.getAssignment(assignmentId, type);
-//        } catch (IOException e) {
-//            System.out.println("EXCEPTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//            throw new RuntimeException(e);
-//        }
-//    }
+    @GetMapping("/stream/{assignmentId}/{type}")
+    public ResponseEntity<Resource> stream(
+            @PathVariable String assignmentId,
+            @PathVariable FileType type,
+            @RequestHeader(value = "Range", required = false) String rangeHeader
+//            It reads the Range header sent by the browser eg Range: bytes=0-1023
+
+    ) throws IOException {
+        return streamingService.streamFile(Long.parseLong(assignmentId),type,rangeHeader);
+    }
+
+
 
 
     @GetMapping("/getAssignmentData")
-    public ResponseEntity<CustomResponse> getAssignmentData(@RequestParam Long assignmentId, @RequestParam FileType type){
+    public ResponseEntity<CustomResponse> getAssignmentData(@RequestParam Long assignmentId, @RequestParam FileType type) {
         Resource resource = assignmentService.loadFileAsResource(assignmentId, type);
+        return null;
         //In Spring, Resource is a powerful interface used to abstract away where a file actually lives. Whether a file is
         // on your local hard drive, inside a JAR file, or on a remote server, the Resource interface provides a unified way
         // to read it.
@@ -131,11 +135,11 @@ public class AssignmentController {
     }
 
     @PostMapping("/create-assignment")
-    public ResponseEntity<CustomResponse> createAssignment(@RequestBody AssignmentDTO assignmentDTO,Authentication authentication){
+    public ResponseEntity<CustomResponse> createAssignment(@RequestBody AssignmentDTO assignmentDTO, Authentication authentication) {
 
-           Assignment assignment =  assignmentService.createAssignment(assignmentDTO,authentication);
-           CustomResponse customResponse = new CustomResponse("Assignment Created Sucesfully",assignmentDTO,HttpStatus.CREATED);
-           return ResponseEntity.status(HttpStatus.CREATED).body(customResponse);
+        AssignmentDTO assignment = assignmentService.createAssignment(assignmentDTO, authentication);
+        CustomResponse customResponse = new CustomResponse("Assignment Created Sucesfully", assignment, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(customResponse);
 
     }
 

@@ -64,4 +64,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.OK).body(customResponse);
     }
 
+    @ExceptionHandler(UserNotPresent.class)
+    public ResponseEntity<CustomResponse> dataNotFound(UserNotPresent userNotPresent, WebRequest webRequest) {
+        {
+            CustomResponse customResponse = new CustomResponse(userNotPresent.getMessage(), webRequest.getDescription(false), HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+        }
+    }
 }

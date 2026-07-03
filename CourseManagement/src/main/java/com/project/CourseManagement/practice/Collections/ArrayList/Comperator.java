@@ -1,4 +1,4 @@
-package com.project.CourseManagement.practice.Collections;
+package com.project.CourseManagement.practice.Collections.ArrayList;
 
 import java.util.*;
 

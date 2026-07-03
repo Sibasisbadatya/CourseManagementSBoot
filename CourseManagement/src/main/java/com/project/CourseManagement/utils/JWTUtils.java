@@ -5,12 +5,14 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 
+@Slf4j
 @Component
 public class JWTUtils {
     private static final String SECRET =
@@ -30,9 +32,12 @@ public class JWTUtils {
 
     public String extractUserNameFromToken(String token) {
         try {
-            return extractClaims(token).getSubject();
+            String subject = extractClaims(token).getSubject();
+            log.info("SUBJECT {}", subject);
+            return subject;
         } catch (RuntimeException e) {
-            System.out.println("SIBASIS NOT TOKEN");
+            log.error("ERROR IN extractUserNameFromToken: {}", e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

@@ -6,11 +6,14 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.util.*;
 import java.util.ArrayList;
 
 @Entity
 @Data
+@ToString(exclude = {"users"})
 @Table(name = "roles")
 @NoArgsConstructor
 @AllArgsConstructor

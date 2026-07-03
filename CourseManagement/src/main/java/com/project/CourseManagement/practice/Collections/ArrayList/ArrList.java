@@ -1,4 +1,4 @@
-package com.project.CourseManagement.practice.Collections;
+package com.project.CourseManagement.practice.Collections.ArrayList;
 //Unlike Arrays ArrayList can change the size dynamically
 //By default capacity of ArrayList is 10
 //if its full it creates new capacity of 1.5x following copying of elements for O(n) TC.

@@ -1,6 +1,7 @@
 package com.project.CourseManagement.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,9 +26,9 @@ public class Course {
     private Integer maxCapacity;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "createdBy")
     @JsonBackReference
-    private User user;
+    private Mentor createdBy;
 
     @OneToMany(
             mappedBy = "course",
@@ -35,51 +36,15 @@ public class Course {
             orphanRemoval = true,
             fetch = FetchType.LAZY
     )
-   private List<Assignment> assignmentList = new ArrayList<>();
+    @JsonBackReference
+    private List<Assignment> assignmentList = new ArrayList<>();
 
+    @ManyToMany(mappedBy = "courses")
+    @JsonManagedReference
+    private List<User> enrolledUsers = new ArrayList<>();
 
-    // getters & setters
-
-    public String getDescription() {
-        return description;
+    public void setEnrolledUsers(User enrolledUser) {
+        this.enrolledUsers.add(enrolledUser);
     }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Integer getMaxCapacity() {
-        return maxCapacity;
-    }
-
-    public void setMaxCapacity(Integer maxCapacity) {
-        this.maxCapacity = maxCapacity;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-
 }
 

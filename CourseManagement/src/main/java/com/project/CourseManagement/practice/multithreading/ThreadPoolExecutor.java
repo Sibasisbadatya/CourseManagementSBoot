@@ -95,11 +95,11 @@ public class ThreadPoolExecutor {
 
 //            Internally everything behaves like Callable
 
-//            In Case 2 passing callable(functional interface having absravt call() method which retuns value) it behaves in normal way
+//            In Case 2 passing callable(functional interface having abstract call() method which returns value) it behaves in normal way
 
-//            Runnable doesnot throws any checked Exception(throws ...) but callble does
+//            Runnable doesn't throws any checked Exception(throws ...) but callable does
 //            **********************************
-//            If any doubt ask chat gpt for callbale and runnable in executor service in Thread
+//            If any doubt ask chat gpt for callable and runnable in executor service in Thread
 //            *********************************************
         }
 
