@@ -26,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -124,10 +121,16 @@ public class UserService {
     }
 
     public UserDTO loginUser(UserDTO dto) {
-        System.out.println("LOGGING INNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN");
-        Optional<User> logginguser = userRepo.findByEmail(dto.getEmail());
+        System.out.println("LOGGING IN");
+        User logginguser = userRepo.findByEmail(dto.getEmail()).orElseThrow(()-> new UserNotPresent("User Not Registered"));
+        logger.info("User fetched {}",logginguser);
+        List<Role> userRoles = logginguser.getRoles();
+        Set<UserRole> roles = userRoles.stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
         UserDTO userDTO = modelMapper.map(logginguser, UserDTO.class);
-        logginguser.orElseThrow(() -> new UserNotPresent("User Not Registered"));
+        userDTO.setRoles(roles);
+        logger.info("User DTO {}",userDTO);
         String token = null;
         try {
             authenticationManager.authenticate(

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignmentDTO {
-    private Long id;
     private Long courseId;
     private String assignmentDescription;
     private String fileName;

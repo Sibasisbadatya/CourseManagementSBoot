@@ -1,6 +1,7 @@
 package com.project.CourseManagement.service;
 
 import com.project.CourseManagement.entity.Assignment;
+import com.project.CourseManagement.entity.SubmittedAssignment;
 import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.exception.DataNotFound;
 import com.project.CourseManagement.exception.InternalServerError;
@@ -236,7 +237,7 @@ public class StreamingService {
             FileType type,
             String rangeHeader
     ) throws IOException {
-        Assignment assignment = assignmentService.getAssignmentById(assignmentId);
+        SubmittedAssignment assignment = assignmentService.getSubmittedAssignmentById(assignmentId);
         Path filePath = switch (type) {
             case FileType.VIDEO -> Path.of(assignment.getVideoPath());
             case FileType.AUDIO -> Path.of(assignment.getAudioPath());

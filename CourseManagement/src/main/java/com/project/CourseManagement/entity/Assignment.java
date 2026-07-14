@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -19,14 +20,6 @@ public class Assignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String assignmentDescription;
-    private String fileName;
-    private String filePath;
-    private String audioPath;
-    private String audioFileName;
-    private String videoPath;
-    private String videoFileName;
-    private Boolean isApproved;
-    private LocalDateTime uploadedAt;
     private LocalDateTime createdAt;
 
 
@@ -35,14 +28,19 @@ public class Assignment {
     @JoinColumn(name = "created_by", nullable = false)
     private Mentor createdBy;
 
-    @ManyToOne
-    @JoinColumn(name = "submitted_by")
-    private User submittedBy;
 
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "courseId")
     private Course course;
 
+    @OneToMany(
+            mappedBy = "assignment",
+            cascade = CascadeType.ALL
+    )
+    private List<SubmittedAssignment> submittedAssignments;
 
+    public void setSubmittedAssignments(SubmittedAssignment submittedAssignments) {
+        this.submittedAssignments.add(submittedAssignments);
+    }
 }

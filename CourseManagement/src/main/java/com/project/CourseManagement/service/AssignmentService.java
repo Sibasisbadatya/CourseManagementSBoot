@@ -3,14 +3,12 @@ package com.project.CourseManagement.service;
 import com.project.CourseManagement.dto.AssignmentDTO;
 import com.project.CourseManagement.dto.CustomResponse;
 import com.project.CourseManagement.dto.FileItemDTO;
-import com.project.CourseManagement.entity.Assignment;
-import com.project.CourseManagement.entity.Course;
-import com.project.CourseManagement.entity.Mentor;
-import com.project.CourseManagement.entity.User;
+import com.project.CourseManagement.entity.*;
 import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.exception.*;
 import com.project.CourseManagement.repository.AssignmentRepository;
 import com.project.CourseManagement.repository.CourseRepository;
+import com.project.CourseManagement.repository.SubmittedAssignmentRepository;
 import com.project.CourseManagement.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -48,19 +46,21 @@ public class AssignmentService {
     private static final String BASE_PATH = "uploads/assignments";
     private final SimpMessagingTemplate messagingTemplate;
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
+    private final SubmittedAssignmentRepository submittedAssignmentRepository;
 
-    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate) {
+    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate, SubmittedAssignmentRepository submittedAssignmentRepository) {
         this.assignmentRepository = assignmentRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.modelMapper = modelMapper;
         this.notificationService = notificationService;
         this.messagingTemplate = messagingTemplate;
+        this.submittedAssignmentRepository = submittedAssignmentRepository;
     }
 
 
     @Transactional
-    public AssignmentDTO submitAssignment(Long assignmentId,MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
+    public AssignmentDTO submitAssignment(Long assignmentId, MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
         if (file.isEmpty()) {
             throw new FileNotFound("Assignment Document is Empty");
         }
@@ -91,10 +91,10 @@ public class AssignmentService {
 
 //                    2. Paths (The "GPS Device")
 //                    Paths is a utility class used to create Path objects. You use it to turn a String into a usable Java object.
-                    // Creating a path from a String
+            // Creating a path from a String
 //                    Path myFile = Paths.get("C:/uploads/assignments/math.pdf");
 
-                    // You can also pass parts separately (it handles the slashes for you!)
+            // You can also pass parts separately (it handles the slashes for you!)
 //                    Path sameFile = Paths.get("C:", "uploads", "assignments", "math.pdf");
 
 
@@ -118,20 +118,24 @@ public class AssignmentService {
                 videoPath = Paths.get(userFolder, video.getOriginalFilename());
                 Files.copy(video.getInputStream(), videoPath, StandardCopyOption.REPLACE_EXISTING);
             }
-            log.info("AssignmentId",assignmentId);
-            Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(()-> new DataNotFound("Assignment Not Found to Submit"));
-            assignment.setSubmittedBy(user);
-            assignment.setFilePath(filePath);
-            assignment.setFileName(file.getOriginalFilename());
+            log.info("AssignmentId", assignmentId);
+            Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new DataNotFound("Assignment Not Found to Submit"));
+            SubmittedAssignment assignmentSubmission = new SubmittedAssignment();
+            assignmentSubmission.setSubmittedBy(user);
+            assignmentSubmission.setFilePath(filePath);
+            assignmentSubmission.setFileName(file.getOriginalFilename());
+
             if (audioPath != null) {
-                assignment.setAudioPath(audioPath.toString());
-                assignment.setAudioFileName(audio.getOriginalFilename());
+                assignmentSubmission.setAudioPath(audioPath.toString());
+                assignmentSubmission.setAudioFileName(audio.getOriginalFilename());
             }
             if (videoPath != null) {
-                assignment.setVideoPath(videoPath.toString());
-                assignment.setVideoFileName(video.getOriginalFilename());
-             }
-            assignment.setUploadedAt(LocalDateTime.now());
+                assignmentSubmission.setVideoPath(videoPath.toString());
+                assignmentSubmission.setVideoFileName(video.getOriginalFilename());
+            }
+            assignmentSubmission.setUploadedAt(LocalDateTime.now());
+            assignment.setSubmittedAssignments(assignmentSubmission);
+
             assignmentRepository.save(assignment);
             return modelMapper.map(assignment, AssignmentDTO.class);
         } catch (IOException e) {
@@ -150,8 +154,8 @@ public class AssignmentService {
         String assignmentDescription = assignmentDTO.getAssignmentDescription();
         Course course = null;
         try {
-            course = courseRepository.findById(courseId).orElseThrow(()-> new DataNotFound("Course Not Found to create Assignment"));
-        }catch (Exception e){
+            course = courseRepository.findById(courseId).orElseThrow(() -> new DataNotFound("Course Not Found to create Assignment"));
+        } catch (Exception e) {
             throw new DataNotFound("Course Not Found to create Assignment");
         }
         Assignment assignment = new Assignment();
@@ -164,7 +168,7 @@ public class AssignmentService {
             assignment.setCreatedBy(mentor);
             assignment.setAssignmentDescription(assignmentDescription);
             savedAssignment = assignmentRepository.save(assignment);
-            return modelMapper.map(savedAssignment,AssignmentDTO.class);
+            return modelMapper.map(savedAssignment, AssignmentDTO.class);
         } catch (Exception e) {
             log.info(e.getMessage());
             throw new InternalServerError("Error during creating assignment");
@@ -188,18 +192,26 @@ public class AssignmentService {
 //                .body(customResponse);
 //    }
 
-    public Assignment getAssignmentById(Long assignmentId){
+    public Assignment getAssignmentById(Long assignmentId) {
         Assignment assignment = null;
         try {
-             assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
-        }catch (Exception e){
-            log.info("Exception in getAssignmentById"+e.getMessage());
+            assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
+            return assignment;
+        } catch (Exception e) {
+            log.info("Exception in getAssignmentById" + e.getMessage());
+            throw new RuntimeException();
         }
+    }
+
+    public SubmittedAssignment getSubmittedAssignmentById(Long assignmentId) {
+        SubmittedAssignment assignment = null;
+
+        assignment = submittedAssignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Submitted Assignment Not Found"));
         return assignment;
     }
 
     public List<FileItemDTO> getAssignmentByAssignmentId(Long assignmentId) {
-        Assignment assignment = getAssignmentById(assignmentId);
+        SubmittedAssignment assignment = getSubmittedAssignmentById(assignmentId);
         List<FileItemDTO> response = new ArrayList<>();
         Map<FileType, String> fileData = new HashMap<>();
         fileData.put(FileType.FILE, assignment.getFilePath());
@@ -221,13 +233,13 @@ public class AssignmentService {
     @Transactional
     public AssignmentDTO approveAssignment(String assignmentId, Authentication authentication) {
         Long id = Long.parseLong(assignmentId);
-        Assignment assignment = getAssignmentById(id);
+        SubmittedAssignment assignment = getSubmittedAssignmentById(id);
         assignment.setIsApproved(true);
         try {
             log.info("ASSIGNMENT {}", assignment);
-            assignmentRepository.save(assignment);
+            submittedAssignmentRepository.save(assignment);
             try {
-                notificationService.saveAndSendNotificationToPersonal("Assignment Approved", assignment.getCreatedBy().getUser(), "/queue/assignment-updates", assignment);
+                notificationService.saveAndSendNotificationToPersonal("Assignment Approved", assignment.getSubmittedBy(), "/queue/assignment-updates", assignment);
             } catch (RuntimeException e) {
                 logger.info("Error in Send Msg", e.getMessage());
                 throw new RuntimeException(e);
@@ -242,8 +254,8 @@ public class AssignmentService {
     }
 
     public Resource loadFileAsResource(Long assignmentId, FileType type) {
-        Assignment assignment = null;
-        assignment = assignmentRepository.findById(assignmentId).orElseThrow(()-> new DataNotFound("Assignment Data Not Found for Files"));
+        SubmittedAssignment assignment = null;
+        assignment = submittedAssignmentRepository.findById(assignmentId).orElseThrow(() -> new DataNotFound("Assignment Data Not Found for Files"));
         String filePath = switch (type) {
             case FileType.VIDEO -> assignment.getVideoPath();
             case FileType.AUDIO -> assignment.getAudioPath();

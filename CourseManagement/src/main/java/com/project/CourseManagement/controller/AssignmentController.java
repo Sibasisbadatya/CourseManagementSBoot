@@ -69,11 +69,8 @@ public class AssignmentController {
             Authentication authentication
     ) {
         List<FileItemDTO> assignmentFiles = new ArrayList<>();
-        try {
-            assignmentFiles = assignmentService.getAssignmentByAssignmentId(assignmentId);
-        } catch (Exception e) {
-            throw new InternalServerError("Error Ocuured while fetching Assignment Files");
-        }
+        assignmentFiles = assignmentService.getAssignmentByAssignmentId(assignmentId);
+        logger.info("Assignments{}", assignmentFiles);
         CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", assignmentFiles, HttpStatus.OK);
         return ResponseEntity.status(HttpStatus.OK).body(customResponse);
 
@@ -87,10 +84,8 @@ public class AssignmentController {
 //            It reads the Range header sent by the browser eg Range: bytes=0-1023
 
     ) throws IOException {
-        return streamingService.streamFile(Long.parseLong(assignmentId),type,rangeHeader);
+        return streamingService.streamFile(Long.parseLong(assignmentId), type, rangeHeader);
     }
-
-
 
 
     @GetMapping("/getAssignmentData")

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(exclude = {"courses", "createdAssignments", "submittedAssignments", "roles", "mentor"})
+@ToString(exclude = {"courses", "submittedAssignments", "mentor"})
 @Table(
         name = "users",
         uniqueConstraints = {
@@ -56,7 +56,7 @@ public class User implements UserDetails {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<Assignment> submittedAssignments = new ArrayList<>();
+    private List<SubmittedAssignment> submittedAssignments = new ArrayList<>();
 
 
     @ManyToMany

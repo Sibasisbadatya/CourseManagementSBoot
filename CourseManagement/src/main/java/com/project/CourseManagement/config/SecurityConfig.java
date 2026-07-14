@@ -44,7 +44,8 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/users/register","/users/login").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/users/register", "/users/login").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/actuator/**").permitAll()
 //                                .requestMatchers("/audio-ws/**").permitAll()
                                 .requestMatchers("/error").permitAll()
 //                                .requestMatchers("/audio/**").permitAll()
@@ -100,7 +101,6 @@ public class SecurityConfig {
 //            | Interceptors       | run logic before controller |
 //            | Static resources   | configure file paths        |
 //            | Message converters | JSON/XML handling           |
-
 
 
 //            | Method                         | Purpose                       |
