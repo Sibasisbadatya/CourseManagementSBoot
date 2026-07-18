@@ -1,5 +1,6 @@
 package com.project.CourseManagement.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(exclude = {"courses", "submittedAssignments", "mentor"})
+@ToString(exclude = {"courses", "submittedAssignments", "mentor", "roles"})
 @Table(
         name = "users",
         uniqueConstraints = {
@@ -34,7 +35,10 @@ public class User implements UserDetails {
     private Long id;
 
     private String name;
+    
+    @Column(nullable = true)
     private String password;
+    
     private String email;
     private Long mobileNo;
     private String profileImage;

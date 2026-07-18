@@ -1,6 +1,7 @@
 package com.project.CourseManagement.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.project.CourseManagement.enums.UserRole;
 import lombok.*;
 
@@ -13,6 +14,7 @@ import java.util.Set;
 @Data
 @Getter
 @Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDTO {
     private String name;
     private String password;

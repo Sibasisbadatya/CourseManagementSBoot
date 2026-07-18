@@ -138,7 +138,7 @@ public class UserService {
             );
             token = jwtUtils.generateToken(dto.getEmail()); //Here email used as UserName
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new InternalServerError("Authentication manager fails to authenticate");
         }
         userDTO.setToken(token);
         return userDTO;

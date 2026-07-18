@@ -1,21 +1,26 @@
 package com.project.CourseManagement.filters;
 
 
+import com.project.CourseManagement.exception.AuthenticationError;
+import com.project.CourseManagement.exception.InternalServerError;
 import com.project.CourseManagement.security.CustomUserDetailService;
 import com.project.CourseManagement.utils.JWTUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
+@Slf4j
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     //it extends OncePerRequestFilter because we dont need to implements filter for repeated redirection to different route.
@@ -37,10 +42,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
                 token = authHeader.substring(7);
+                if(token.trim().isEmpty()) throw new AuthenticationError("Bad Credentials");
                 userName =
                         jwtUtils.extractUserNameFromToken(token);
+            } catch (AuthenticationError e) {
+                e.printStackTrace();
+                throw e;
             } catch (Exception e) {
-                logger.error("JWT ERROR", e);
+              log.info("Error in extracting username from token: {}", e.getMessage());
+              throw new InternalServerError("Authentication Failed");
             }
         }
         if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {

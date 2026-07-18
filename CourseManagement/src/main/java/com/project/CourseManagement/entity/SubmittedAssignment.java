@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@lombok.ToString(exclude = {"submittedBy", "assignment"})
 public class SubmittedAssignment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

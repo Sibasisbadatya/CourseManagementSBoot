@@ -17,7 +17,7 @@ import java.util.Set;
 @Configuration
 public class DefaultDataSeeder {
 
-    @Bean
+//    @Bean
     public ApplicationRunner initializeRoles(RolesRepository rolesRepository){
         return args->{
             for(UserRole userRole:UserRole.values()){

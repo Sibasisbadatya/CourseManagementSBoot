@@ -53,5 +53,10 @@ public class UserController {
         logger.info("AUTHENTICATION" + authentication);
         return userService.getUserById(id);
     }
+
+    @GetMapping("/success")
+    public String success() {
+        return "Login Successful";
+    }
 }
 

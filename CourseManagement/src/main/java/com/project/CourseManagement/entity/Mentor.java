@@ -16,6 +16,7 @@ import java.util.List;
 @Table(name = "mentors")
 @NoArgsConstructor
 @AllArgsConstructor
+@lombok.ToString(exclude = {"createdAssignments", "courses", "user"})
 public class Mentor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

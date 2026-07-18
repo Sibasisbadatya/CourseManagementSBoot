@@ -16,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "courses")
+@lombok.ToString(exclude = {"createdBy", "assignmentList", "enrolledUsers"})
 public class Course {
 
     @Id

@@ -71,4 +71,12 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.OK).body(customResponse);
         }
     }
+
+    @ExceptionHandler(AuthenticationError.class)
+    public ResponseEntity<CustomResponse> authenticationFails(AuthenticationError authenticationError, WebRequest webRequest) {
+        {
+            CustomResponse customResponse = new CustomResponse(authenticationError.getMessage(), webRequest.getDescription(false), HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(customResponse);
+        }
+    }
 }
