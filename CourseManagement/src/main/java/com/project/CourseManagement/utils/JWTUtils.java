@@ -1,7 +1,9 @@
 package com.project.CourseManagement.utils;
 
 
+import com.project.CourseManagement.exception.AuthenticationError;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -35,7 +37,11 @@ public class JWTUtils {
             String subject = extractClaims(token).getSubject();
             log.info("SUBJECT {}", subject);
             return subject;
-        } catch (RuntimeException e) {
+        } catch (ExpiredJwtException e) {
+            log.info("Error in extracting claims: {}", e.getMessage());
+            throw new AuthenticationError(e.getMessage());
+        }
+        catch (RuntimeException e) {
             log.error("ERROR IN extractUserNameFromToken: {}", e.getMessage());
             e.printStackTrace();
             throw new RuntimeException(e);

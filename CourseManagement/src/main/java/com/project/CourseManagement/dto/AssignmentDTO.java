@@ -2,19 +2,15 @@ package com.project.CourseManagement.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class AssignmentDTO {
-    private Long courseId;
     private String assignmentDescription;
-    private String fileName;
-    private String filePath;
-    private String audioPath;
-    private String audioFileName;
-    private String videoPath;
-    private String videoFileName;
-    private Boolean isApproved;
+    private Boolean docRequired;
+    private Boolean mediaRequired;
+    private Long courseId;
 }

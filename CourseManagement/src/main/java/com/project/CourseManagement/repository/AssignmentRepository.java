@@ -3,6 +3,8 @@ package com.project.CourseManagement.repository;
 import com.project.CourseManagement.entity.Assignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AssignmentRepository extends JpaRepository<Assignment,Long> {
+import java.util.List;
 
+public interface AssignmentRepository extends JpaRepository<Assignment,Long> {
+        List<Assignment> findByCourseId(Long courseId);
 }

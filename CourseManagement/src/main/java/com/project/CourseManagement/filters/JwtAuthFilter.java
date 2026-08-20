@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 
 @Slf4j
@@ -42,15 +43,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
                 token = authHeader.substring(7);
-                if(token.trim().isEmpty()) throw new AuthenticationError("Bad Credentials");
+                if (token.trim().isEmpty()) throw new AuthenticationError("Bad Credentials");
                 userName =
                         jwtUtils.extractUserNameFromToken(token);
             } catch (AuthenticationError e) {
                 e.printStackTrace();
                 throw e;
             } catch (Exception e) {
-              log.info("Error in extracting username from token: {}", e.getMessage());
-              throw new InternalServerError("Authentication Failed");
+                e.printStackTrace();
+                log.info("Error in extracting username from token: {}", e.getMessage());
+                throw new InternalServerError("Authentication Failed");
             }
         }
         if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {

@@ -1,7 +1,8 @@
 package com.project.CourseManagement.service;
 
 import com.project.CourseManagement.dto.AssignmentDTO;
-import com.project.CourseManagement.dto.CustomResponse;
+import com.project.CourseManagement.dto.CourseDTO;
+import com.project.CourseManagement.dto.SubmittedAssignmentDTO;
 import com.project.CourseManagement.dto.FileItemDTO;
 import com.project.CourseManagement.entity.*;
 import com.project.CourseManagement.enums.FileType;
@@ -16,18 +17,12 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,8 +42,8 @@ public class AssignmentService {
     private final SimpMessagingTemplate messagingTemplate;
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
     private final SubmittedAssignmentRepository submittedAssignmentRepository;
-
-    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate, SubmittedAssignmentRepository submittedAssignmentRepository) {
+    private final CourseService courseService;
+    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate, SubmittedAssignmentRepository submittedAssignmentRepository, CourseService courseService) {
         this.assignmentRepository = assignmentRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
@@ -56,11 +51,12 @@ public class AssignmentService {
         this.notificationService = notificationService;
         this.messagingTemplate = messagingTemplate;
         this.submittedAssignmentRepository = submittedAssignmentRepository;
+        this.courseService = courseService;
     }
 
 
     @Transactional
-    public AssignmentDTO submitAssignment(Long assignmentId, MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
+    public SubmittedAssignmentDTO submitAssignment(Long assignmentId, MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
         if (file.isEmpty()) {
             throw new FileNotFound("Assignment Document is Empty");
         }
@@ -134,14 +130,17 @@ public class AssignmentService {
                 assignmentSubmission.setVideoFileName(video.getOriginalFilename());
             }
             assignmentSubmission.setUploadedAt(LocalDateTime.now());
+//            before setting usbmitted asignment we have to make link parent to child
+            assignmentSubmission.setAssignment(assignment);
+//          setting SubmittedAssignmnets which will be linked to this assignments
             assignment.setSubmittedAssignments(assignmentSubmission);
 
             assignmentRepository.save(assignment);
-            return modelMapper.map(assignment, AssignmentDTO.class);
+            return modelMapper.map(assignment, SubmittedAssignmentDTO.class);
         } catch (IOException e) {
             throw new FileStorageException("Couldn't store file on disk");
         } catch (Exception e) {
-            log.info(e.getMessage());
+            log.info("Error Occured in Uploading {}",e.getMessage());
             throw new InternalServerError("Error Occurred in Uploading");
         }
     }
@@ -229,9 +228,23 @@ public class AssignmentService {
         return response;
     }
 
+    public List<AssignmentDTO> getAllAssignment(Long courseId,Authentication authentication){
+        CourseDTO course = courseService.getCourseByCourseId(courseId,authentication);
+        List<Assignment> allAssignnment = assignmentRepository.findByCourseId(courseId);
+        List<AssignmentDTO> assignmentDTOList = allAssignnment.stream().map(assignment -> modelMapper.map(assignment, AssignmentDTO.class)).toList();
+        return assignmentDTOList;
+    }
+
+    public List<SubmittedAssignmentDTO> getSubmittedAssignments(Long assignmentId,Authentication authentication){
+        Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not with id {} Found"));
+        List<SubmittedAssignment> submittedAssignments = assignment.getSubmittedAssignments();
+        List<SubmittedAssignmentDTO> submittedAssignmentsList = submittedAssignments.stream().map(submittedAssignment -> modelMapper.map(submittedAssignment, SubmittedAssignmentDTO.class)).toList();
+        return submittedAssignmentsList;
+    }
+
 
     @Transactional
-    public AssignmentDTO approveAssignment(String assignmentId, Authentication authentication) {
+    public SubmittedAssignmentDTO approveAssignment(String assignmentId, Authentication authentication) {
         Long id = Long.parseLong(assignmentId);
         SubmittedAssignment assignment = getSubmittedAssignmentById(id);
         assignment.setIsApproved(true);
@@ -244,7 +257,7 @@ public class AssignmentService {
                 logger.info("Error in Send Msg", e.getMessage());
                 throw new RuntimeException(e);
             }
-            AssignmentDTO assignmentDTO = modelMapper.map(assignment, AssignmentDTO.class);
+            SubmittedAssignmentDTO assignmentDTO = modelMapper.map(assignment, SubmittedAssignmentDTO.class);
             return assignmentDTO;
         } catch (RuntimeException e) {
             logger.info(e.getMessage());

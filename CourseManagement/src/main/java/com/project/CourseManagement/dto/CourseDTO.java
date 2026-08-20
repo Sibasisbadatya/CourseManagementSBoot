@@ -12,13 +12,17 @@ import java.util.List;
 @Data
 @Getter
 @Setter
+@Builder
 public class CourseDTO {
     private Long id;
     private String title;
     private String description;
     private Integer maxCapacity;
+    private String courseImage;
+    private String content;
     private List<UserDTO> enrolledUsers;
     private MentorDTO createdBy;
-    private Boolean isUserBooked;
+    @Builder.Default
+    private Boolean isUserBooked=false;
 }
 

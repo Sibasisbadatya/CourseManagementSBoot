@@ -1,5 +1,7 @@
 package com.project.CourseManagement.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -52,6 +54,7 @@ public class User implements UserDetails {
     private List<Role> roles = new ArrayList<>();
 
     @OneToOne(mappedBy = "user",cascade = CascadeType.ALL)
+    @JsonIgnore
     private Mentor mentor;
 
 
@@ -63,12 +66,8 @@ public class User implements UserDetails {
     private List<SubmittedAssignment> submittedAssignments = new ArrayList<>();
 
 
-    @ManyToMany
-    @JoinTable(
-            name = "student_courses",
-            joinColumns = @JoinColumn(name = "student_id"),
-            inverseJoinColumns = @JoinColumn(name = "course_id")
-    )
+    @ManyToMany(mappedBy = "enrolledUsers",fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Course> courses;
 
     // =========================================================================

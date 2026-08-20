@@ -1,12 +1,11 @@
 package com.project.CourseManagement.controller;
 
 import com.project.CourseManagement.dto.AssignmentDTO;
+import com.project.CourseManagement.dto.SubmittedAssignmentDTO;
 import com.project.CourseManagement.dto.CustomResponse;
 import com.project.CourseManagement.dto.FileItemDTO;
-import com.project.CourseManagement.entity.Assignment;
 import com.project.CourseManagement.entity.User;
 import com.project.CourseManagement.enums.FileType;
-import com.project.CourseManagement.exception.InternalServerError;
 import com.project.CourseManagement.service.AssignmentService;
 import com.project.CourseManagement.service.StreamingService;
 import jakarta.transaction.Transactional;
@@ -36,45 +35,6 @@ public class AssignmentController {
         this.streamingService = streamingService;
     }
 
-
-    @PostMapping("/submit-assignment")
-    @Transactional
-    public ResponseEntity<CustomResponse> submitAssignment(
-            @RequestParam Long assignmentId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("audio") MultipartFile audio,
-            @RequestParam("video") MultipartFile video,
-            Authentication authentication) throws IOException {
-//        MultipartFile = a Java object that represents a file sent in an HTTP request (multipart/form-data)
-//                | Method                  | Use                        |
-//                | ----------------------- | -------------------------- |
-//                | `getOriginalFilename()` | file name                  |
-//                | `getSize()`             | file size (bytes)          |
-//                | `getContentType()`      | MIME type (audio/mp4 etc.) |
-//                | `getBytes()`            | file as byte[]             |
-//                | `getInputStream()`      | stream                     |
-//                | `isEmpty()`             | check if file exists       |
-
-        System.out.println("AUTHENTICATION" + authentication);
-        logger.info("AUTHENTICATION INFO" + authentication);
-        User user = (User) authentication.getPrincipal();
-        AssignmentDTO assignmentDTO = assignmentService.submitAssignment(assignmentId, file, audio, video, authentication.getName());
-        CustomResponse customResponse = new CustomResponse("Assignment uploaded successfully", assignmentDTO, HttpStatus.OK);
-        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
-    }
-
-    @GetMapping("/get-submitted-assignment/{assignmentId}")
-    public ResponseEntity<CustomResponse> getAssignment(
-            @PathVariable Long assignmentId,
-            Authentication authentication
-    ) {
-        List<FileItemDTO> assignmentFiles = new ArrayList<>();
-        assignmentFiles = assignmentService.getAssignmentByAssignmentId(assignmentId);
-        logger.info("Assignments{}", assignmentFiles);
-        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", assignmentFiles, HttpStatus.OK);
-        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
-
-    }
 
     @GetMapping("/stream/{assignmentId}/{type}")
     public ResponseEntity<Resource> stream(
@@ -129,6 +89,14 @@ public class AssignmentController {
 //        Purpose: Returns the size of the file in bytes. Useful for the Content-Length header so the browser can show a progress bar.
     }
 
+    @GetMapping("/getAssignementsByCourseId")
+    public ResponseEntity<CustomResponse> getAllAssignments(@RequestBody AssignmentDTO assignmentDTO,Authentication authentication){
+        Long courseId = assignmentDTO.getCourseId();
+        List<AssignmentDTO> assignmentList = assignmentService.getAllAssignment(courseId,authentication);
+        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", assignmentList, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+    }
+
     @PostMapping("/create-assignment")
     public ResponseEntity<CustomResponse> createAssignment(@RequestBody AssignmentDTO assignmentDTO, Authentication authentication) {
 
@@ -138,10 +106,61 @@ public class AssignmentController {
 
     }
 
+
+
+    @PostMapping("/submit-assignment")
+    @Transactional
+    public ResponseEntity<CustomResponse> submitAssignment(
+            @RequestParam Long assignmentId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("audio") MultipartFile audio,
+            @RequestParam("video") MultipartFile video,
+            Authentication authentication) throws IOException {
+//        MultipartFile = a Java object that represents a file sent in an HTTP request (multipart/form-data)
+//                | Method                  | Use                        |
+//                | ----------------------- | -------------------------- |
+//                | `getOriginalFilename()` | file name                  |
+//                | `getSize()`             | file size (bytes)          |
+//                | `getContentType()`      | MIME type (audio/mp4 etc.) |
+//                | `getBytes()`            | file as byte[]             |
+//                | `getInputStream()`      | stream                     |
+//                | `isEmpty()`             | check if file exists       |
+
+        System.out.println("AUTHENTICATION" + authentication);
+        logger.info("AUTHENTICATION INFO" + authentication);
+        User user = (User) authentication.getPrincipal();
+        SubmittedAssignmentDTO assignmentDTO = assignmentService.submitAssignment(assignmentId, file, audio, video, authentication.getName());
+        CustomResponse customResponse = new CustomResponse("Assignment uploaded successfully", assignmentDTO, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+    }
+
+    @GetMapping("/get-submitted-assignment/{assignmentId}")
+    public ResponseEntity<CustomResponse> getSubmittedAssignment(
+            @PathVariable Long assignmentId,
+            Authentication authentication
+    ) {
+        List<FileItemDTO> assignmentFiles = new ArrayList<>();
+        assignmentFiles = assignmentService.getAssignmentByAssignmentId(assignmentId);
+        logger.info("Assignments{}", assignmentFiles);
+        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", assignmentFiles, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+
+    }
+
+    @GetMapping("get-submitted-assignments-by-assignment/{assignmentId}")
+    public ResponseEntity<CustomResponse> getSubmittedAssignments(
+            @PathVariable Long assignmentId,
+            Authentication authentication
+    ){
+       List<SubmittedAssignmentDTO> submittedAssignmentsList = assignmentService.getSubmittedAssignments(assignmentId, authentication);
+        CustomResponse customResponse = new CustomResponse("Submitted Assignments fetched Succesfully", submittedAssignmentsList, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(customResponse);
+    }
+
     @PostMapping("/approve-assignment")
     public ResponseEntity<CustomResponse> approveAssignment(@RequestParam String assignmentId, Authentication authentication) {
 
-        AssignmentDTO assignmentDTO = assignmentService.approveAssignment(assignmentId, authentication);
+        SubmittedAssignmentDTO assignmentDTO = assignmentService.approveAssignment(assignmentId, authentication);
         CustomResponse customResponse = new CustomResponse("Assignment Approved", assignmentDTO, HttpStatus.OK);
         return ResponseEntity.status(HttpStatus.OK).body(customResponse);
     }

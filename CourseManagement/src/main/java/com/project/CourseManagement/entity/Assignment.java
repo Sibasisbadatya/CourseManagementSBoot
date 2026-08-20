@@ -21,6 +21,8 @@ public class Assignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String assignmentDescription;
+    private Boolean docRequired;
+    private Boolean mediaRequired;
     private LocalDateTime createdAt;
 
 
