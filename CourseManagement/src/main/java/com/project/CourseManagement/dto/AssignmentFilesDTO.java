@@ -6,6 +6,6 @@ import java.util.List;
 
 @NoArgsConstructor
 public class AssignmentFilesDTO {
-    private List<FileItemDTO> items;
+    private List<MediaFileDTO> items;
 
 }

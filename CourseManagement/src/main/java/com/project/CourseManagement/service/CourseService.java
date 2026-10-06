@@ -1,10 +1,12 @@
 package com.project.CourseManagement.service;
 
+import com.project.CourseManagement.dto.AssignmentDTO;
 import com.project.CourseManagement.dto.CourseDTO;
 import com.project.CourseManagement.dto.MentorDTO;
+import com.project.CourseManagement.entity.Assignment;
 import com.project.CourseManagement.entity.Course;
-import com.project.CourseManagement.entity.Mentor;
 import com.project.CourseManagement.entity.User;
+import com.project.CourseManagement.exception.AuthenticationError;
 import com.project.CourseManagement.exception.DataNotFound;
 import com.project.CourseManagement.exception.InternalServerError;
 import com.project.CourseManagement.exception.OutOfCapacity;
@@ -24,7 +26,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 //@RequiredArgsConstructor
@@ -40,7 +43,7 @@ public class CourseService {
 
     private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
 
-    private User getUserDetailsFromAuthentication(Authentication authentication){
+    private User getUserDetailsFromAuthentication(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("User not authenticated");
         }
@@ -54,8 +57,8 @@ public class CourseService {
         this.mentorRepository = mentorRepository;
     }
 
-    public CourseDTO getCourseByCourseId(Long courseId,Authentication authentication) {
-        User user = getUserDetailsFromAuthentication(authentication);
+    public CourseDTO getCourseByCourseId(Long courseId, Authentication authentication) {
+        User user = userRepo.findByEmail(authentication.getName()).orElseThrow(() -> new AuthenticationError("Authenticated User Not Found"));
         Course course = courseRepo.findById(courseId).orElseThrow(() -> new DataNotFound("Course Details by this id not found"));
         MentorDTO mentorDTO = null;
         if (course.getCreatedBy() != null) {
@@ -69,9 +72,29 @@ public class CourseService {
         courseDTO.setCourseImage(course.getCourseImage());
         courseDTO.setContent(course.getContent());
         courseDTO.setIsUserBooked(false);
-        if (course.getCreatedBy() != null && course.getEnrolledUsers().contains(user)) {
-           courseDTO.setIsUserBooked(true);
+        if (course.getEnrolledUsers() != null && course.getEnrolledUsers().contains(user)) {
+            courseDTO.setIsUserBooked(true);
         }
+
+        List<Assignment> assignmentList = course.getAssignmentList();
+        Set<Long> submittedAssignmentsId = user.getSubmittedAssignments()
+                .stream()
+                        .map(submittedAssignment -> submittedAssignment.getAssignment().getId())
+                        .collect(Collectors.toSet());
+
+        courseDTO.setAssignmentLists(
+                assignmentList.stream().map(assignment -> {
+                    AssignmentDTO assignmentDTO = new AssignmentDTO();
+                    assignmentDTO.setCourseId(assignment.getCourse().getId());
+                    assignmentDTO.setId(assignment.getId());
+                    assignmentDTO.setAssignmentDescription(assignment.getAssignmentDescription());
+                    assignmentDTO.setMediaRequired(assignment.getMediaRequired());
+                    assignmentDTO.setDocRequired(assignment.getDocRequired());
+                    assignmentDTO.setIsUserSubmitted(submittedAssignmentsId.contains(assignment.getId()));
+                    return assignmentDTO;
+                }).toList()
+        );
+
 //       return courseRepo.findById(courseId).orElseThrow(()-> new DataNotFound("Course Details by this id not found"));
         return courseDTO;
     }
@@ -93,7 +116,7 @@ public class CourseService {
         return courseRepo.save(course);
     }
 
-    public Course addCourse(CourseDTO dto,Authentication authentication) {
+    public Course addCourse(CourseDTO dto, Authentication authentication) {
         User mentorUser = getUserDetailsFromAuthentication(authentication);
         Course course = new Course();
         course.setTitle(dto.getTitle());
@@ -117,10 +140,10 @@ public class CourseService {
         User user = userRepo.findByEmail(emailId).orElseThrow(() -> new DataNotFound("User not found with email: " + emailId));
 
         List<Course> courses = new ArrayList<>();
-        try{
+        try {
             courses = user.getCourses();
         } catch (RuntimeException e) {
-            logger.info("Error in fetching courses {}",e.getMessage());
+            logger.info("Error in fetching courses {}", e.getMessage());
             throw new InternalServerError("Couldn't able to fetch courses for user");
         }
         courses.stream()
@@ -131,10 +154,10 @@ public class CourseService {
         return courses;
     }
 
-    public Page<Course> getAllCourse(Pageable pageable){
+    public Page<Course> getAllCourse(Pageable pageable) {
         Page<Course> courses = courseRepo.findAll(pageable);
         courses.stream()
-                .forEach(course->course.setContent(null));
+                .forEach(course -> course.setContent(null));
         return courses;
     }
 }

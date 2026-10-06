@@ -1,9 +1,6 @@
 package com.project.CourseManagement.service;
 
-import com.project.CourseManagement.dto.AssignmentDTO;
-import com.project.CourseManagement.dto.CourseDTO;
-import com.project.CourseManagement.dto.SubmittedAssignmentDTO;
-import com.project.CourseManagement.dto.FileItemDTO;
+import com.project.CourseManagement.dto.*;
 import com.project.CourseManagement.entity.*;
 import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.exception.*;
@@ -38,12 +35,13 @@ public class AssignmentService {
     private final CourseRepository courseRepository;
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
-    private static final String BASE_PATH = "uploads/assignments";
     private final SimpMessagingTemplate messagingTemplate;
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
     private final SubmittedAssignmentRepository submittedAssignmentRepository;
     private final CourseService courseService;
-    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate, SubmittedAssignmentRepository submittedAssignmentRepository, CourseService courseService) {
+    private final CloudinaryService cloudinaryService;
+
+    public AssignmentService(AssignmentRepository assignmentRepository, UserRepository userRepository, CourseRepository courseRepository, ModelMapper modelMapper, NotificationService notificationService, SimpMessagingTemplate messagingTemplate, SubmittedAssignmentRepository submittedAssignmentRepository, CourseService courseService, CloudinaryService cloudinaryService) {
         this.assignmentRepository = assignmentRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
@@ -52,11 +50,12 @@ public class AssignmentService {
         this.messagingTemplate = messagingTemplate;
         this.submittedAssignmentRepository = submittedAssignmentRepository;
         this.courseService = courseService;
+        this.cloudinaryService = cloudinaryService;
     }
 
 
     @Transactional
-    public SubmittedAssignmentDTO submitAssignment(Long assignmentId, MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
+    public SubmittedAssignmentDTO submitAssignment(String forLocalStorage, Long assignmentId, MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
         if (file.isEmpty()) {
             throw new FileNotFound("Assignment Document is Empty");
         }
@@ -64,7 +63,7 @@ public class AssignmentService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotPresent("User Not Found to Upload Assignment"));
 
         try {
-            String userFolder = BASE_PATH + email;
+            String userFolder = "user/uploads/" + email;
             Files.createDirectories(Paths.get(userFolder));
 
             String filePath = userFolder + "/" + file.getOriginalFilename();
@@ -140,7 +139,74 @@ public class AssignmentService {
         } catch (IOException e) {
             throw new FileStorageException("Couldn't store file on disk");
         } catch (Exception e) {
-            log.info("Error Occured in Uploading {}",e.getMessage());
+            log.info("Error Occured in Uploading {}", e.getMessage());
+            throw new InternalServerError("Error Occurred in Uploading");
+        }
+    }
+
+    @Transactional
+    public SubmittedAssignmentDTO submitAssignment(Long assignmentId, MultipartFile file, MultipartFile audio, MultipartFile video, String email) throws FileStorageException {
+        if (file.isEmpty()) {
+            throw new FileNotFound("Assignment Document is Empty");
+        }
+
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotPresent("User Not Found to Upload Assignment"));
+
+        try {
+            String userFolder = email + "/assignments";
+            System.out.println("SIbasis Badatya 12345");
+            String filePath = null;
+            String audioPath = null;
+            String videoPath = null;
+            String vttUrl = null;
+            if (file != null && !file.isEmpty()) {
+                filePath = cloudinaryService.uploadFile(file, userFolder);
+            }
+            if (audio != null && !audio.isEmpty()) {
+                audioPath = cloudinaryService.uploadFile(audio, userFolder);
+            }
+            if (video != null && !video.isEmpty()) {
+                CloudinaryVideoResponse videoResponse = cloudinaryService.uploadVideo(video, userFolder);
+                log.info("Video Response: {}", videoResponse);
+
+                videoPath = videoResponse.getSecureUrl();
+                vttUrl = videoResponse.getVttUrl();
+
+                log.info("Playable Video Path: {}", videoPath);
+                log.info("HLS Path: {}", videoResponse.getHlsUrl());
+                log.info("VTT Path: {}", vttUrl);
+            }
+            log.info("AssignmentId", assignmentId);
+            Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new DataNotFound("Assignment Not Found to Submit"));
+            SubmittedAssignment assignmentSubmission = new SubmittedAssignment();
+            assignmentSubmission.setSubmittedBy(user);
+            assignmentSubmission.setFilePath(filePath);
+            assignmentSubmission.setFileName(file.getOriginalFilename());
+
+            if (audioPath != null) {
+                assignmentSubmission.setAudioPath(audioPath.toString());
+                assignmentSubmission.setAudioFileName(audio.getOriginalFilename());
+            }
+            if (videoPath != null) {
+                assignmentSubmission.setVideoPath(videoPath.toString());
+                assignmentSubmission.setVttUrl(vttUrl.toString());
+                assignmentSubmission.setVideoFileName(video.getOriginalFilename());
+            }
+            assignmentSubmission.setUploadedAt(LocalDateTime.now());
+            assignmentSubmission.setAssignment(assignment);
+            assignment.setSubmittedAssignments(assignmentSubmission);
+            try {
+                assignmentRepository.save(assignment);
+            } catch (RuntimeException e) {
+                throw new InternalServerError("Error Occurred in Uploading Assignment");
+            }
+            return toSubmittedAssignmentDto(assignmentSubmission);
+        } catch (IOException e) {
+            log.info("Error Ocuured in uploading assignment {} ", e.getMessage());
+            e.printStackTrace();
+            throw new FileStorageException("Couldn't store file on disk");
+        } catch (Exception e) {
+            log.info("Error Occured in Uploading {}", e.getMessage());
             throw new InternalServerError("Error Occurred in Uploading");
         }
     }
@@ -209,37 +275,47 @@ public class AssignmentService {
         return assignment;
     }
 
-    public List<FileItemDTO> getAssignmentByAssignmentId(Long assignmentId) {
-        SubmittedAssignment assignment = getSubmittedAssignmentById(assignmentId);
-        List<FileItemDTO> response = new ArrayList<>();
-        Map<FileType, String> fileData = new HashMap<>();
-        fileData.put(FileType.FILE, assignment.getFilePath());
-        fileData.put(FileType.AUDIO, assignment.getAudioPath());
-        fileData.put(FileType.VIDEO, assignment.getVideoPath());
-        fileData.forEach((fileType, value) -> {
-            if (value != null) {
-                response.add(
-                        new FileItemDTO(
-                                fileType, value
-                        )
-                );
-            }
-        });
-        return response;
+    public List<SubmittedAssignmentDTO> getSubmittedAssignmentByAssignmentId(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new AssignmentNotFound("Assignment Not Found"));
+
+        return assignment.getSubmittedAssignments().stream()
+                .map(this::toSubmittedAssignmentDto)
+                .toList();
     }
 
-    public List<AssignmentDTO> getAllAssignment(Long courseId,Authentication authentication){
-        CourseDTO course = courseService.getCourseByCourseId(courseId,authentication);
+    public List<AssignmentDTO> getAllAssignment(Long courseId, Authentication authentication) {
+        CourseDTO course = courseService.getCourseByCourseId(courseId, authentication);
         List<Assignment> allAssignnment = assignmentRepository.findByCourseId(courseId);
         List<AssignmentDTO> assignmentDTOList = allAssignnment.stream().map(assignment -> modelMapper.map(assignment, AssignmentDTO.class)).toList();
         return assignmentDTOList;
     }
 
-    public List<SubmittedAssignmentDTO> getSubmittedAssignments(Long assignmentId,Authentication authentication){
+    public List<SubmittedAssignmentDTO> getSubmittedAssignments(Long assignmentId, Authentication authentication) {
         Assignment assignment = assignmentRepository.findById(assignmentId).orElseThrow(() -> new AssignmentNotFound("Assignment Not with id {} Found"));
         List<SubmittedAssignment> submittedAssignments = assignment.getSubmittedAssignments();
-        List<SubmittedAssignmentDTO> submittedAssignmentsList = submittedAssignments.stream().map(submittedAssignment -> modelMapper.map(submittedAssignment, SubmittedAssignmentDTO.class)).toList();
+        log.info("Submitted Assignments",submittedAssignments);
+        List<SubmittedAssignmentDTO> submittedAssignmentsList = submittedAssignments.stream()
+                .map(this::toSubmittedAssignmentDto)
+                .toList();
         return submittedAssignmentsList;
+    }
+
+    private SubmittedAssignmentDTO toSubmittedAssignmentDto(SubmittedAssignment submission) {
+        SubmittedAssignmentDTO dto = new SubmittedAssignmentDTO();
+        if (submission.getAssignment() != null) {
+            dto.setAssignmentId(submission.getAssignment().getId());
+        }
+        dto.setFileName(submission.getFileName());
+        dto.setFilePath(submission.getFilePath());
+        dto.setAudioFileName(submission.getAudioFileName());
+        dto.setAudioPath(submission.getAudioPath());
+        dto.setVideoFileName(submission.getVideoFileName());
+        dto.setVideoPath(submission.getVideoPath());
+        dto.setVttUrl(submission.getVttUrl());
+        dto.setIsApproved(submission.getIsApproved());
+        cloudinaryService.applyVideoDeliveryUrls(dto);
+        return dto;
     }
 
 
@@ -257,7 +333,7 @@ public class AssignmentService {
                 logger.info("Error in Send Msg", e.getMessage());
                 throw new RuntimeException(e);
             }
-            SubmittedAssignmentDTO assignmentDTO = modelMapper.map(assignment, SubmittedAssignmentDTO.class);
+            SubmittedAssignmentDTO assignmentDTO = toSubmittedAssignmentDto(assignment);
             return assignmentDTO;
         } catch (RuntimeException e) {
             logger.info(e.getMessage());

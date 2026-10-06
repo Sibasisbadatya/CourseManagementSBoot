@@ -3,7 +3,7 @@ package com.project.CourseManagement.controller;
 import com.project.CourseManagement.dto.AssignmentDTO;
 import com.project.CourseManagement.dto.SubmittedAssignmentDTO;
 import com.project.CourseManagement.dto.CustomResponse;
-import com.project.CourseManagement.dto.FileItemDTO;
+import com.project.CourseManagement.dto.MediaFileDTO;
 import com.project.CourseManagement.entity.User;
 import com.project.CourseManagement.enums.FileType;
 import com.project.CourseManagement.service.AssignmentService;
@@ -139,10 +139,10 @@ public class AssignmentController {
             @PathVariable Long assignmentId,
             Authentication authentication
     ) {
-        List<FileItemDTO> assignmentFiles = new ArrayList<>();
-        assignmentFiles = assignmentService.getAssignmentByAssignmentId(assignmentId);
-        logger.info("Assignments{}", assignmentFiles);
-        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", assignmentFiles, HttpStatus.OK);
+        List<SubmittedAssignmentDTO> submittedAssignments = new ArrayList<>();
+        submittedAssignments = assignmentService.getSubmittedAssignmentByAssignmentId(assignmentId);
+        logger.info("Assignments{}", submittedAssignments);
+        CustomResponse customResponse = new CustomResponse("Assignments fetched Succesfully", submittedAssignments, HttpStatus.OK);
         return ResponseEntity.status(HttpStatus.OK).body(customResponse);
 
     }

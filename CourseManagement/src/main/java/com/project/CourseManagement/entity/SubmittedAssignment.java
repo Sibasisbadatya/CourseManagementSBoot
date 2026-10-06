@@ -22,8 +22,9 @@ public class SubmittedAssignment {
     private String audioPath;
     private String audioFileName;
     private String videoPath;
+    private String vttUrl;
     private String videoFileName;
-    private Boolean isApproved;
+    private Boolean isApproved=false;
     private LocalDateTime uploadedAt;
 
     @ManyToOne

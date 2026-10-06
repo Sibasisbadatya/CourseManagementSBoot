@@ -8,13 +8,13 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @Data
-public class FileItemDTO {
+public class MediaFileDTO {
     @Enumerated(EnumType.STRING)
     private FileType type;
-    private String fileName;
+    private String content;
 
-    public FileItemDTO(FileType type, String fileName) {
+    public MediaFileDTO(FileType type, String content) {
         this.type = type;
-        this.fileName = fileName;
+        this.content = content;
     }
 }
